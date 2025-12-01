@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DecaCheckin
 
-## Getting Started
+A barcode-based check-in system for events.
 
-First, run the development server:
+## Features
+- Real-time attendee tracking.
+- 3-column dashboard (Checked In, Conference Property, Checked Out).
+- Barcode scanner support (Headless).
+- Configurable checkout cutoff time.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Setup
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. **Clone and Install**
+   ```bash
+   npm install
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. **Supabase Setup**
+   - Create a new Supabase project.
+   - Go to the **SQL Editor** in your Supabase Dashboard and run the following query to create the table:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```sql
+   create type status_enum as enum ('CHECKED_IN', 'CONFERENCE', 'CHECKED_OUT');
 
-## Learn More
+   create table "User" (
+     id text primary key,
+     name text not null,
+     status status_enum default 'CHECKED_IN',
+     last_scanned_at timestamp with time zone default now(),
+     updated_at timestamp with time zone default now()
+   );
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+3. **Environment Variables**
+   Create a `.env.local` file with your credentials. Note the use of the new **Publishable** and **Secret** keys.
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="sbp_..."
+   SUPABASE_SECRET_KEY="sbs_..."
+   NEXT_PUBLIC_CHECKOUT_CUTOFF="17:00"
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. **Seed Data**
+   Use the `/api/seed` endpoint to upload your master list.
+   Example `curl`:
+   ```bash
+   curl -X POST http://localhost:3000/api/seed \
+     -H "Content-Type: application/json" \
+     -d '{ "users": [{ "id": "1210082", "name": "John Doe" }] }'
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+5. **Run Development Server**
+   ```bash
+   npm run dev
+   ```
 
-## Deploy on Vercel
+## Deployment (Vercel)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Push to GitHub.
+2. Import project in Vercel.
+3. Set Environment Variables in Vercel Project Settings:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   - `SUPABASE_SECRET_KEY`
+   - `NEXT_PUBLIC_CHECKOUT_CUTOFF`
+4. Deploy.
