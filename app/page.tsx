@@ -1,6 +1,7 @@
 'use client';
 
-import useSWR from 'swr';
+import { useState } from 'react';
+import useSWR, { mutate } from 'swr';
 import { ScannerListener } from './components/ScannerListener';
 import { UserCard } from './components/UserCard';
 
@@ -15,11 +16,47 @@ interface User {
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function Dashboard() {
+  const [manualId, setManualId] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   const { data: users, error } = useSWR<User[]>('/api/users', fetcher, {
     refreshInterval: 30000, // Poll every 30 seconds
     revalidateOnFocus: true, // Refresh when window gains focus
     revalidateOnReconnect: true // Refresh when connection is restored
   });
+
+  const handleManualCheckIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualId.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ barcode: manualId.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setMessage({ type: 'success', text: `${data.action}: ${data.user.name}` });
+        setManualId('');
+        mutate('/api/users');
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Check-in failed' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Network error. Please try again.' });
+    } finally {
+      setIsSubmitting(false);
+      // Clear message after 3 seconds
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
 
   if (error) return <div className="p-8 text-center text-red-500">Failed to load users. Check connection.</div>;
   if (!users) return <div className="p-8 text-center text-gray-500">Loading users...</div>;
@@ -51,6 +88,46 @@ export default function Dashboard() {
           >
             Manage Data
           </a>
+        </div>
+      </div>
+
+      {/* Manual Check-In Bar */}
+      <div className="max-w-[1800px] mx-auto mb-6">
+        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+          <form onSubmit={handleManualCheckIn} className="flex items-center gap-4">
+            <div className="flex-1">
+              <label htmlFor="manualId" className="block text-sm font-semibold text-gray-700 mb-2">
+                Manual Check-In
+              </label>
+              <input
+                type="text"
+                id="manualId"
+                value={manualId}
+                onChange={(e) => setManualId(e.target.value)}
+                placeholder="Enter student ID (e.g., 1210082)"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-lg"
+                disabled={isSubmitting}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isSubmitting || !manualId.trim()}
+              className="mt-7 px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              {isSubmitting ? 'Processing...' : 'Check In'}
+            </button>
+            {message && (
+              <div
+                className={`mt-7 px-6 py-3 rounded-xl font-medium ${
+                  message.type === 'success'
+                    ? 'bg-green-100 text-green-800 border border-green-200'
+                    : 'bg-red-100 text-red-800 border border-red-200'
+                }`}
+              >
+                {message.text}
+              </div>
+            )}
+          </form>
         </div>
       </div>
 

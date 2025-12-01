@@ -25,16 +25,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid barcode format' }, { status: 400 });
     }
 
-    // Expected format: "2025/12/01 10:37:18 1210082"
+    // Expected formats:
+    // Scanner: "2025/12/01 10:37:18 1210082" (date, time, ID)
+    // Manual: "MANUAL 1210082" or just "1210082"
     const parts = barcode.trim().split(/\s+/);
-    
-    if (parts.length < 3) {
-      return NextResponse.json({ error: 'Invalid barcode content' }, { status: 400 });
-    }
 
+    // Extract ID (always the last part)
     const id = parts[parts.length - 1];
 
-    // Check if user exists
+    if (!id || id.length < 4) {
+      return NextResponse.json({ error: 'Invalid ID in barcode' }, { status: 400 });
+    }
+
+    // Check if user exists and is present at the conference
     const { data: user, error: fetchError } = await supabaseAdmin
       .from('User')
       .select('*')
@@ -45,15 +48,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found in master list', id }, { status: 404 });
     }
 
+    // Check if user is marked as present
+    if (!user.present) {
+      return NextResponse.json({ error: 'User not present at conference', id, name: user.name }, { status: 403 });
+    }
+
     const now = new Date();
     const cutoffTime = getCutoffTime();
-    
-    let newStatus: Status;
+    const currentStatus = user.status as Status;
 
-    if (isBefore(now, cutoffTime)) {
-      newStatus = 'CONFERENCE';
-    } else {
+    let newStatus: Status;
+    let action: string;
+
+    // State transition logic:
+    // CHECKED_IN -> CONFERENCE (before cutoff) or CHECKED_OUT (after cutoff)
+    // CONFERENCE -> CHECKED_IN (return from conference)
+    // CHECKED_OUT -> stays CHECKED_OUT (no change)
+
+    if (currentStatus === 'CONFERENCE') {
+      newStatus = 'CHECKED_IN';
+      action = 'Returned to Checked In';
+    } else if (currentStatus === 'CHECKED_OUT') {
       newStatus = 'CHECKED_OUT';
+      action = 'Already Checked Out';
+    } else {
+      // currentStatus === 'CHECKED_IN'
+      if (isBefore(now, cutoffTime)) {
+        newStatus = 'CONFERENCE';
+        action = 'Moved to Conference';
+      } else {
+        newStatus = 'CHECKED_OUT';
+        action = 'Checked Out';
+      }
     }
 
     // Update user
@@ -72,10 +98,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to update status' }, { status: 500 });
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       user: updatedUser,
-      action: newStatus === 'CONFERENCE' ? 'Moved to Conference' : 'Checked Out'
+      action
     });
 
   } catch (error) {

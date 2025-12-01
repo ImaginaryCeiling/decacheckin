@@ -13,6 +13,7 @@ export async function GET() {
     const { data: users, error } = await supabaseAdmin
       .from('User')
       .select('*')
+      .eq('present', true)
       .order('name', { ascending: true });
 
     if (error) {

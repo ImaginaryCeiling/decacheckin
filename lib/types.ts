@@ -5,5 +5,6 @@ export interface User {
   name: string;
   status: Status;
   last_scanned_at: string; // Supabase returns snake_case by default unless transformed
+  present: boolean;
 }
 
