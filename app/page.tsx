@@ -146,34 +146,34 @@ export default function Dashboard() {
               <p className="text-gray-400 text-center italic mt-16 text-lg">No users checked in</p>
             )}
             {checkedIn.map((u) => (
-              <UserCard key={u.id} name={u.name} id={u.id} />
+              <UserCard key={u.id} name={u.name} id={u.id} currentStatus={u.status} />
             ))}
           </div>
         </div>
 
-        {/* Column 2: Conference Property */}
+        {/* Column 2: Off Conference Property */}
         <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 min-h-[70vh] flex flex-col hover:shadow-xl transition-shadow">
-          <div className="flex justify-between items-center mb-6 pb-4 border-b-2 border-green-100">
-            <h2 className="text-2xl font-bold text-green-600">Conference Property</h2>
-            <span className="bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-md">
+          <div className="flex justify-between items-center mb-6 pb-4 border-b-2 border-red-100">
+            <h2 className="text-2xl font-bold text-red-600">Off Conference Property</h2>
+            <span className="bg-gradient-to-r from-red-500 to-red-600 text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-md">
               {conference.length}
             </span>
           </div>
           <div className="flex-1 overflow-y-auto space-y-3 pr-2">
             {conference.length === 0 && (
-              <p className="text-gray-400 text-center italic mt-16 text-lg">No users at conference</p>
+              <p className="text-gray-400 text-center italic mt-16 text-lg">No users off conference property</p>
             )}
             {conference.map((u) => (
-              <UserCard key={u.id} name={u.name} id={u.id} />
+              <UserCard key={u.id} name={u.name} id={u.id} currentStatus={u.status} />
             ))}
           </div>
         </div>
 
         {/* Column 3: Checked Out */}
         <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 min-h-[70vh] flex flex-col hover:shadow-xl transition-shadow">
-          <div className="flex justify-between items-center mb-6 pb-4 border-b-2 border-red-100">
-            <h2 className="text-2xl font-bold text-red-600">Checked Out</h2>
-            <span className="bg-gradient-to-r from-red-500 to-red-600 text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-md">
+          <div className="flex justify-between items-center mb-6 pb-4 border-b-2 border-purple-100">
+            <h2 className="text-2xl font-bold text-purple-600">Checked Out</h2>
+            <span className="bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-md">
               {checkedOut.length}
             </span>
           </div>
@@ -182,7 +182,7 @@ export default function Dashboard() {
               <p className="text-gray-400 text-center italic mt-16 text-lg">No users checked out</p>
             )}
             {checkedOut.map((u) => (
-              <UserCard key={u.id} name={u.name} id={u.id} />
+              <UserCard key={u.id} name={u.name} id={u.id} currentStatus={u.status} />
             ))}
           </div>
         </div>
