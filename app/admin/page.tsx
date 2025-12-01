@@ -11,6 +11,7 @@ interface User {
   name: string;
   status: 'CHECKED_IN' | 'CONFERENCE' | 'CHECKED_OUT';
   lastScannedAt: string;
+  present: boolean;
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -19,8 +20,10 @@ export default function AdminDashboard() {
   const [manualId, setManualId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showAbsent, setShowAbsent] = useState(false);
 
-  const { data: users, error } = useSWR<User[]>('/api/users', fetcher, {
+  // Fetch ALL users for admin view
+  const { data: users, error } = useSWR<User[]>('/api/users-all', fetcher, {
     refreshInterval: 30000, // Poll every 30 seconds
     revalidateOnFocus: true, // Refresh when window gains focus
     revalidateOnReconnect: true // Refresh when connection is restored
@@ -67,9 +70,14 @@ export default function AdminDashboard() {
     return <div className="p-8 text-center text-red-500">Error: Invalid data format from server. Check console.</div>;
   }
 
-  const checkedIn = users.filter((u) => u.status === 'CHECKED_IN');
-  const conference = users.filter((u) => u.status === 'CONFERENCE');
-  const checkedOut = users.filter((u) => u.status === 'CHECKED_OUT');
+  // Filter by presence status
+  const presentUsers = users.filter((u) => u.present === true);
+  const absentUsers = users.filter((u) => u.present === false);
+
+  // Filter present users by status
+  const checkedIn = presentUsers.filter((u) => u.status === 'CHECKED_IN');
+  const conference = presentUsers.filter((u) => u.status === 'CONFERENCE');
+  const checkedOut = presentUsers.filter((u) => u.status === 'CHECKED_OUT');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 lg:p-10">
@@ -80,9 +88,21 @@ export default function AdminDashboard() {
         <div className="flex justify-between items-center bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-1">Admin Dashboard</h1>
-            <p className="text-gray-500 text-sm">Real-time attendance tracking with admin controls</p>
+            <p className="text-gray-500 text-sm">
+              Real-time attendance tracking | Present: {presentUsers.length} | Absent: {absentUsers.length}
+            </p>
           </div>
           <div className="flex gap-4">
+            <button
+              onClick={() => setShowAbsent(!showAbsent)}
+              className={`px-6 py-3.5 rounded-xl transition-all font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${
+                showAbsent
+                  ? 'bg-gradient-to-r from-orange-600 to-orange-700 text-white hover:from-orange-700 hover:to-orange-800'
+                  : 'bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 hover:from-gray-300 hover:to-gray-400'
+              }`}
+            >
+              {showAbsent ? 'Hide' : 'Show'} Absent ({absentUsers.length})
+            </button>
             <a
               href="/"
               className="px-8 py-3.5 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
@@ -154,7 +174,7 @@ export default function AdminDashboard() {
               <p className="text-gray-400 text-center italic mt-16 text-lg">No users checked in</p>
             )}
             {checkedIn.map((u) => (
-              <UserCard key={u.id} name={u.name} id={u.id} currentStatus={u.status} />
+              <UserCard key={u.id} name={u.name} id={u.id} currentStatus={u.status} isPresent={u.present} />
             ))}
           </div>
         </div>
@@ -172,7 +192,7 @@ export default function AdminDashboard() {
               <p className="text-gray-400 text-center italic mt-16 text-lg">No users off conference property</p>
             )}
             {conference.map((u) => (
-              <UserCard key={u.id} name={u.name} id={u.id} currentStatus={u.status} />
+              <UserCard key={u.id} name={u.name} id={u.id} currentStatus={u.status} isPresent={u.present} />
             ))}
           </div>
         </div>
@@ -190,11 +210,30 @@ export default function AdminDashboard() {
               <p className="text-gray-400 text-center italic mt-16 text-lg">No users checked out</p>
             )}
             {checkedOut.map((u) => (
-              <UserCard key={u.id} name={u.name} id={u.id} currentStatus={u.status} />
+              <UserCard key={u.id} name={u.name} id={u.id} currentStatus={u.status} isPresent={u.present} />
             ))}
           </div>
         </div>
       </div>
+
+      {/* Absent Users Section */}
+      {showAbsent && absentUsers.length > 0 && (
+        <div className="max-w-[1800px] mx-auto mt-6">
+          <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
+            <div className="flex justify-between items-center mb-6 pb-4 border-b-2 border-orange-100">
+              <h2 className="text-2xl font-bold text-orange-600">Absent Users</h2>
+              <span className="bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-md">
+                {absentUsers.length}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              {absentUsers.map((u) => (
+                <UserCard key={u.id} name={u.name} id={u.id} currentStatus={u.status} isPresent={u.present} />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

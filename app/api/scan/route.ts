@@ -49,9 +49,9 @@ export async function POST(request: Request) {
     }
 
     // Check if user is marked as present
-    if (!user.present) {
-      return NextResponse.json({ error: 'User not present at conference', id, name: user.name }, { status: 403 });
-    }
+    // if (!user.present) {
+    //   return NextResponse.json({ error: 'User not present at conference', id, name: user.name }, { status: 403 });
+    // }
 
     const now = new Date();
     const cutoffTime = getCutoffTime();
@@ -83,12 +83,18 @@ export async function POST(request: Request) {
     }
 
     // Update user
+    const updateData: any = {
+      status: newStatus,
+      last_scanned_at: now.toISOString(),
+    };
+
+    if (!user.present) {
+      updateData.present = true;
+    }
+
     const { data: updatedUser, error: updateError } = await supabaseAdmin
       .from('User')
-      .update({
-        status: newStatus,
-        last_scanned_at: now.toISOString(),
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
