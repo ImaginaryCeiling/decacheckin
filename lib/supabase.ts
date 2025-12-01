@@ -5,9 +5,9 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-// Validate URL to prevent build error
+// Validate URL to prevent Supabase client crash if env var is missing/invalid
 const isValidUrl = (url?: string) => url && (url.startsWith('http://') || url.startsWith('https://'));
-const safeUrl = isValidUrl(supabaseUrl) ? supabaseUrl! : 'https://placeholder.supabase.co';
+const safeUrl = isValidUrl(supabaseUrl) ? supabaseUrl! : 'https://lsrvctklmygwogqnigid.supabase.co';
 
 export const supabase = createClient(
   safeUrl, 
@@ -25,6 +25,6 @@ export const supabaseAdmin = supabaseSecretKey
 
 if (!supabaseUrl || (!supabasePublishableKey && !supabaseSecretKey)) {
   if (process.env.NODE_ENV !== 'production' && typeof window === 'undefined') {
-    console.warn('Missing Supabase environment variables');
+    console.warn('Missing Supabase environment variables (URL, Publishable Key, or Secret Key)');
   }
 }
